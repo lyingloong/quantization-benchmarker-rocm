@@ -28,7 +28,7 @@ class BenchmarkConfig:
     def __post_init__(self):
         # 设置默认值
         if self.max_new_tokens_list is None:
-            self.max_new_tokens_list = [50, 100, 200]
+            self.max_new_tokens_list = [50, 100]
         
         if self.input_texts is None:
             self.input_texts = [

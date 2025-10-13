@@ -1,3 +1,0 @@
-lyingloong-2025-09-18: 验证 PyTorch 环境为原生 ROCm（USE_ROCM=ON）, 适配 AMD RX 7900 XTX, 无 CUDA 兼容层.
-lyingloong-2025-09-18: install torchao to qunatize model, not fit with rocm-gpu, but ok with cpu
-lyingloong-2025-09-20: reference/quantize.py from gpt-fast

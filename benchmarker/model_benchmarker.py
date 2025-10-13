@@ -30,7 +30,7 @@ class ModelBenchmarker:
         self.device = torch.device(config.device if torch.cuda.is_available() else "cpu")
         print(f"[ModelBenchmarker: __init__] Device: {self.device}")
         
-        # 配置线程
+        # set threads
         try:
             if config.num_threads is not None:
                 torch.set_num_threads(config.num_threads)
@@ -92,9 +92,9 @@ class ModelBenchmarker:
         for i in range(self.config.num_runs):
             # 记录GPU内存
             if self.device.type == "cuda":
-                torch.cuda.reset_peak_memory_stats()
-                start_mem = torch.cuda.memory_allocated()
-            
+                torch.cuda.synchronize()
+                torch.cuda.reset_peak_memory_stats()  # 重置峰值统计
+
             # 记录时间
             start_time = time.perf_counter()
             
@@ -109,18 +109,22 @@ class ModelBenchmarker:
                     top_p=self.config.top_p
                 )
             
+            if self.device.type == "cuda":
+                torch.cuda.synchronize()
+
             # 计算时间
             end_time = time.perf_counter()
             latency = end_time - start_time
             
-            # 计算生成的token数量
-            generated_tokens = outputs.shape[1] - input_length
-            
             # 计算内存使用
             mem_usage = 0.0
             if self.device.type == "cuda":
-                peak_mem = (torch.cuda.max_memory_allocated() - start_mem) / (1024 **3)
-                mem_usage = peak_mem
+                torch.cuda.synchronize()
+                peak_mem = torch.cuda.max_memory_allocated()
+                mem_usage = peak_mem / (1024 ** 3)  # 转换为GB单位
+
+            # 计算生成的token数量
+            generated_tokens = outputs.shape[1] - input_length
             
             # 保存结果
             latencies.append(latency)
@@ -142,16 +146,16 @@ class ModelBenchmarker:
             gpu_mem_usage=gpu_mem_usage
         )
     
-    def run_all_tests(self, model_config_name: str):
+    def run_all_tests(self, model_name: str):
         """运行所有配置的测试"""
-        print(f"\n=== 开始测试: {model_config_name} ===")
+        print(f"\n=== 开始测试: {model_name} ===")
         
         for input_text in self.config.input_texts:
             # 为不同输入创建标识
             input_id = f"输入长度_{len(self.tokenizer(input_text)['input_ids'])}"
             
             for max_new_tokens in self.config.max_new_tokens_list:
-                config_name = f"{model_config_name}_{input_id}_生成_{max_new_tokens}"
+                config_name = f"{model_name}_{input_id}_生成_{max_new_tokens}"
                 print(f"\n--- 测试配置: {config_name} ---")
                 
                 # 运行测试
