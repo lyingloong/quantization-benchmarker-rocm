@@ -28,14 +28,20 @@ class ModelBenchmarker:
         
         # 配置设备
         self.device = torch.device(config.device if torch.cuda.is_available() else "cpu")
-        print(f"使用设备: {self.device}")
+        print(f"[ModelBenchmarker: __init__] Device: {self.device}")
         
         # 配置线程
-        if config.num_threads is not None:
-            torch.set_num_threads(config.num_threads)
-        if config.num_interop_threads is not None:
-            torch.set_num_interop_threads(config.num_interop_threads)
-        
+        try:
+            if config.num_threads is not None:
+                torch.set_num_threads(config.num_threads)
+                print(f"[ModelBenchmarker: __init__] Set num_threads to {config.num_threads}")
+            if config.num_interop_threads is not None:
+                torch.set_num_interop_threads(config.num_interop_threads)
+                print(f"[ModelBenchmarker: __init__] Set num_interop_threads to {config.num_interop_threads}")
+        except RuntimeError as e:
+            if "cannot set number of interop threads" in str(e) or "cannot set number of threads" in str(e):
+                print(f"[ModelBenchmarker: __init__] Warning: {e}")
+
         # 确保tokenizer有pad_token
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
@@ -195,6 +201,6 @@ class ModelBenchmarker:
         print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=10))
         
         # 保存详细结果
-        prof.export_chrome_trace(output_file)
-        print(f"\n性能分析详细结果已保存至 {output_file} (可在Chrome中打开查看)")
+        # prof.export_chrome_trace(output_file)
+        # print(f"\n性能分析详细结果已保存至 {output_file}")
     

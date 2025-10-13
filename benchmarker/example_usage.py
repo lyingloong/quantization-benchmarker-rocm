@@ -5,6 +5,7 @@ import torch
 
 def load_model_and_tokenizer(model_path: str, device: str, quantize: bool = False):
     """加载模型和Tokenizer的示例函数"""
+    print("[load_model_and_tokenizer] Loading model and tokenizer...")
     tokenizer = AutoTokenizer.from_pretrained(
         model_path, 
         trust_remote_code=True,
@@ -15,7 +16,7 @@ def load_model_and_tokenizer(model_path: str, device: str, quantize: bool = Fals
         model_path,  
         device_map=None,
         attn_implementation="sdpa",
-        torch_dtype=torch.float16
+        dtype=torch.float16
     ).to(device)
     
     # 可选的量化步骤
@@ -64,14 +65,14 @@ def main():
     # 可选择打印详细结果
     # results_fp16.print_detailed()
     
-    # 运行性能分析 (可选)
+    # 运行性能分析
     benchmarker_fp16.run_profiler(
         input_text="Hello world!", 
         max_new_tokens=100,
         output_file="fp16_profile_trace.json"
     )
     
-    # 4. 测试量化模型 (可选)
+    # 4. 测试量化模型
     model_int8, _ = load_model_and_tokenizer(
         model_path=model_path,
         device=device,

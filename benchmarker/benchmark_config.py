@@ -3,7 +3,6 @@ from typing import List, Optional
 
 @dataclass
 class BenchmarkConfig:
-    """性能测试配置参数类"""
     # 测试运行参数
     num_runs: int = 10                  # 正式测试次数
     warmup_runs: int = 3                # 预热次数
@@ -15,7 +14,13 @@ class BenchmarkConfig:
     num_threads: Optional[int] = None   # CPU线程数
     num_interop_threads: Optional[int] = None  # 算子间并行线程数
     
-    # 推理参数
+    """
+    推理参数
+    do_sample: if True, use sampling; otherwise, use greedy decoding.
+    temperature: sampling temperature; higher values mean more random results.
+    top_p: if set to < 1, only the most probable tokens with probabilities that
+           add up to top_p or higher are kept for generation.
+    """
     do_sample: bool = False             # 是否采样生成
     temperature: float = 1.0            # 采样温度
     top_p: float = 1.0                  # top_p参数
