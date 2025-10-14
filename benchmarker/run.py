@@ -4,7 +4,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 import torch
 import argparse
 
-def load_model_and_tokenizer(model_path: str, device: str, quantize: bool = False):
+def load_model_and_tokenizer(model_path: str, device: str, quantize: bool = False, quantize_method: str = "torchao-int8"):
     print("[load_model_and_tokenizer] Loading model and tokenizer...")
     tokenizer = AutoTokenizer.from_pretrained(
         model_path, 
@@ -20,12 +20,18 @@ def load_model_and_tokenizer(model_path: str, device: str, quantize: bool = Fals
     ).to(device)
     
     if quantize:
-        try:
-            from torchao.quantization import quantize_, Int8WeightOnlyConfig
-            quantize_(model, Int8WeightOnlyConfig())
-            print("[load_model_and_tokenizer] Model quantized to int8.")
-        except ImportError:
-            print("[load_model_and_tokenizer] torchao not installed, skipping quantization.")
+        if quantize_method == "torchao-int8":
+            print("[load_model_and_tokenizer] Applying int8 quantization using torchao...")
+            try:
+                from torchao.quantization import quantize_, Int8WeightOnlyConfig
+                quantize_(model, Int8WeightOnlyConfig())
+                print("[load_model_and_tokenizer] Model quantized to int8.")
+            except ImportError:
+                print("[load_model_and_tokenizer] torchao not installed, skipping quantization.")
+        elif quantize_method == "gptq":
+            raise NotImplementedError("GPTQ quantization not implemented in this example.")
+        else:
+            raise ValueError(f"Unsupported quantization method: {quantize_method}")
     
     return model, tokenizer
 
@@ -38,6 +44,7 @@ def main():
     parser.add_argument("--model_path", type=str, required=True, help="path of the model")
     parser.add_argument("--device", type=str, default="cuda", help="device to run the model")
     parser.add_argument("--quantize", action="store_true", help="whether to quantize the model")
+    parser.add_argument("--quantize_method", type=str, default="torchao-int8", help="quantization method")
     parser.add_argument("--num_runs", type=int, default=5, help="number of benchmark runs")
     parser.add_argument("--warmup_runs", type=int, default=2, help="number of warmup runs")
     # parser.add_argument("--max_new_tokens_list", type=str, default="50,100", help="comma-separated list of max_new_tokens")
@@ -58,7 +65,8 @@ def main():
     model, tokenizer = load_model_and_tokenizer(
         model_path=args.model_path,
         device=device,
-        quantize=args.quantize
+        quantize=args.quantize,
+        quantize_method=args.quantize_method
     )
 
     benchmarker = ModelBenchmarker(

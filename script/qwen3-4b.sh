@@ -14,5 +14,13 @@ python benchmarker/run.py \
     --model_path "$MODEL_PATH" \
     --device "$DEVICE" \
     --quantize \
+    --quantize_method "torchao-int8" \
+
+python benchmarker/run.py \
+    --model_name "$MODEL_NAME" \
+    --model_path "$MODEL_PATH" \
+    --device "$DEVICE" \
+    --quantize \
+    --quantize_method "gptq" \
 
 echo "[qwen3-4b.sh] Done."
