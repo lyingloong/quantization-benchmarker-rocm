@@ -174,7 +174,7 @@ class ModelBenchmarker:
         
         return self.results
     
-    def run_profiler(self, input_text: str, max_new_tokens: int, output_file: str = "profile_trace.json"):
+    def run_profiler(self, input_text: str, max_new_tokens: int, output_file: str = "output_file.txt"):
         """运行性能分析器"""
         try:
             from torch.profiler import profile, record_function, ProfilerActivity
@@ -204,11 +204,14 @@ class ModelBenchmarker:
                     top_p=self.config.top_p
                 )
         
-        # 打印简要结果
-        print("\n=== 性能分析摘要 (按CUDA时间排序) ===")
-        print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=10))
+        # 生成表格字符串
+        table = prof.key_averages().table(sort_by="cuda_time_total", row_limit=50)
         
-        # 保存详细结果
-        # prof.export_chrome_trace(output_file)
-        # print(f"\n性能分析详细结果已保存至 {output_file}")
+        # print(table)
+        
+        # 保存为文本文件（.txt 或 .log）
+        with open(output_file, "w") as f:
+            f.write(table)
+        
+        print(f"\n性能分析表格已保存至: {output_file}")
     

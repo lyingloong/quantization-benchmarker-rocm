@@ -119,7 +119,7 @@ def main():
     benchmarker.run_profiler(
         input_text="Hello world!", 
         max_new_tokens=100,
-        output_file="profile_trace.json"
+        output_file=f"result/{args.model_name}_{args.quantize_method}.txt" if args.quantize else f"result/{args.model_name}_origin.txt"
     )
 
 
