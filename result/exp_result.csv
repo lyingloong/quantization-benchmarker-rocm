@@ -1,0 +1,13 @@
+model exp input_tokens max_new_tokens avg_latency avg_throughput peak_gpu_mem
+qwen3-4b none-quantization 3 50 1.3825 36.17 7.59
+qwen3-4b none-quantization 3 100 2.7686 36.12 7.59
+qwen3-4b none-quantization 26 50 1.3873 36.04 7.59
+qwen3-4b none-quantization 26 100 2.7780 36.00 7.60
+qwen3-4b torchao-int8 3 50 2.2752 21.98 5.27
+qwen3-4b torchao-int8 3 100 4.5582 21.94 5.28
+qwen3-4b torchao-int8 26 50 2.2819 21.91 5.28
+qwen3-4b torchao-int8 26 100 4.5658 21.90 5.28
+qwen3-4b gptq-int8 3 50 2.1213 23.57 2.59
+qwen3-4b gptq-int8 3 100 4.2628 23.46 2.59
+qwen3-4b gptq-int8 26 50 2.1427 23.34 2.59
+qwen3-4b gptq-int8 26 100 4.2964 23.28 2.60

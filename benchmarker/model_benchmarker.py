@@ -3,6 +3,7 @@ import torch
 from typing import Callable, Any, Optional
 from benchmark_config import BenchmarkConfig
 from benchmark_result import BenchmarkResultCollection, SingleTestResult
+import os
 
 class ModelBenchmarker:
     """通用模型性能测试器"""
@@ -67,11 +68,13 @@ class ModelBenchmarker:
                     self.model, 
                     inputs,
                     max_new_tokens=max_new_tokens,
+                    use_cache=True,
                     do_sample=self.config.do_sample,
                     temperature=self.config.temperature,
                     top_p=self.config.top_p
                 )
-    
+
+    @torch.inference_mode()
     def run_single_test(self, 
                        input_text: str, 
                        max_new_tokens: int, 
@@ -104,6 +107,7 @@ class ModelBenchmarker:
                     self.model, 
                     inputs,
                     max_new_tokens=max_new_tokens,
+                    use_cache=True,
                     do_sample=self.config.do_sample,
                     temperature=self.config.temperature,
                     top_p=self.config.top_p
