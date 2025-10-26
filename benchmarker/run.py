@@ -25,7 +25,8 @@ def load_model_and_tokenizer(model_path: str, device: str, quantize: bool = Fals
         dtype=torch.float16,
         trust_remote_code=True
     )
-    model = torch.compile(model, mode="reduce-overhead")
+    if not (quantize and quantize_method == "bitsandbytes"):
+        model = torch.compile(model, mode="reduce-overhead")
     print(next(model.parameters()).device)
     print(model.hf_device_map)
     for name, param in model.named_parameters():
@@ -63,6 +64,21 @@ def load_model_and_tokenizer(model_path: str, device: str, quantize: bool = Fals
                     model.tie_weights()
                 except ImportError:
                     print("[load_model_and_tokenizer] gptq not installed, skipping loading.")
+        elif quantize_method == "bitsandbytes":
+            print("[load_model_and_tokenizer] Applying 8-bit quantization using bitsandbytes...")
+            try:
+                from transformers import BitsAndBytesConfig
+                bnb_config = BitsAndBytesConfig(load_in_8bit=True)
+                del model  # 删除之前加载的 float16 模型
+                model = AutoModelForCausalLM.from_pretrained(
+                    model_path,
+                    quantization_config=bnb_config,
+                    device_map="auto",               # 自动分配到 GPU
+                    attn_implementation="sdpa",
+                    trust_remote_code=True
+                )
+            except ImportError:
+                print("[load_model_and_tokenizer] bitsandbytes not installed, skipping quantization.")
         else:
             raise ValueError(f"Unsupported quantization method: {quantize_method}")
     

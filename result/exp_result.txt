@@ -11,3 +11,7 @@ qwen3-4b gptq-int8 3 50 2.1213 23.57 2.59
 qwen3-4b gptq-int8 3 100 4.2628 23.46 2.59
 qwen3-4b gptq-int8 26 50 2.1427 23.34 2.59
 qwen3-4b gptq-int8 26 100 4.2964 23.28 2.60
+qwen3-4b bnb-int8 3 50 5.3468 9.36 4.16
+qwen3-4b bnb-int8 3 100 10.7284 9.32 4.16
+qwen3-4b bnb-int8 26 50 5.2587 9.51 4.16
+qwen3-4b bnb-int8 26 100 10.5674 9.46 4.17
