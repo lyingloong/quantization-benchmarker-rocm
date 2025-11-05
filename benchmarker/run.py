@@ -26,9 +26,8 @@ def load_model_and_tokenizer(model_path: str, device: str, quantize: bool = Fals
         trust_remote_code=True
     )
     if not (quantize and quantize_method == "bitsandbytes"):
-        model = torch.compile(model, mode="reduce-overhead")
-    print(next(model.parameters()).device)
-    print(model.hf_device_map)
+        # use no-cudagraphs to avoid cudagraphs related errors, especially for amd-quark
+        model = torch.compile(model, mode="max-autotune-no-cudagraphs")
     for name, param in model.named_parameters():
         assert param.device.type == "cuda", f"{name} still on CPU"
     if quantize:
@@ -40,7 +39,7 @@ def load_model_and_tokenizer(model_path: str, device: str, quantize: bool = Fals
                 print("[load_model_and_tokenizer] Model quantized to int8.")
             except ImportError:
                 print("[load_model_and_tokenizer] torchao not installed, skipping quantization.")
-        elif quantize_method == "gptq":
+        elif quantize_method == "gptq-int8":
             if(not already_quantized):
                 print("[load_model_and_tokenizer] Applying int8 quantization using gptq...")
                 try:
@@ -52,11 +51,37 @@ def load_model_and_tokenizer(model_path: str, device: str, quantize: bool = Fals
                         split="train"
                       ).select(range(1024))["text"]
     
+                    quant_config = QuantizeConfig(bits=8, group_size=128)
+                    del model
+                    model = GPTQModel.load(model_path, quant_config, device="cuda")
+                    model.quantize(calibration_dataset, batch_size=1)
+                    model.save("../qwen3_gptqmodel-8bit")
+                    model.model.to("cuda")
+                except ImportError:
+                    print("[load_model_and_tokenizer] gptq not installed, skipping quantization.")      
+            else:
+                try:
+                    model.tie_weights()
+                except ImportError:
+                    print("[load_model_and_tokenizer] gptq not installed, skipping loading.")
+        elif quantize_method == "gptq-int4":
+            if(not already_quantized):
+                print("[load_model_and_tokenizer] Applying int4 quantization using gptq...")
+                try:
+                    from gptqmodel import GPTQModel,QuantizeConfig
+                    from datasets import load_dataset
+                    calibration_dataset = load_dataset(
+                        "allenai/c4",
+                        data_files="en/c4-train.00001-of-01024.json.gz",
+                        split="train"
+                      ).select(range(1024))["text"]
+    
                     quant_config = QuantizeConfig(bits=4, group_size=128)
                     del model
-                    model = GPTQModel.load(model_path, quant_config)
-                    model.tokenizer =tokenizer
+                    model = GPTQModel.load(model_path, quant_config, device="cuda")
                     model.quantize(calibration_dataset, batch_size=1)
+                    model.save("../qwen3_gptqmodel-4bit")
+                    model.model.to("cuda")
                 except ImportError:
                     print("[load_model_and_tokenizer] gptq not installed, skipping quantization.")      
             else:
@@ -79,6 +104,97 @@ def load_model_and_tokenizer(model_path: str, device: str, quantize: bool = Fals
                 )
             except ImportError:
                 print("[load_model_and_tokenizer] bitsandbytes not installed, skipping quantization.")
+        elif quantize_method.startswith("quark-"):
+            calib_file = f"quark_{quantize_method}_calib.pt"
+            
+            try:
+                from quark.torch import ModelQuantizer
+                from quark.torch.quantization import (
+                    Config, QuantizationConfig,
+                    FP8E4M3PerTensorSpec, Int8PerTensorSpec, Int4PerTensorSpec
+                )
+                from datasets import load_dataset
+                import os
+
+                print(f"[load_model_and_tokenizer] Applying {quantize_method} quantization using Quark...")
+
+                device = model.device if hasattr(model, "device") else torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+                # ====== 定义量化规格 ======
+                if quantize_method == "quark-fp8":
+                    spec = FP8E4M3PerTensorSpec(observer_method="min_max", is_dynamic=False).to_quantization_spec()
+                elif quantize_method == "quark-int8":
+                    spec = Int8PerTensorSpec(observer_method="min_max", is_dynamic=False, symmetric=True, round_method="round", scale_type="float").to_quantization_spec()
+                elif quantize_method == "quark-int4":
+                    spec = Int4PerTensorSpec(observer_method="min_max", is_dynamic=False, symmetric=True, round_method="round", scale_type="float").to_quantization_spec()
+                else:
+                    raise ValueError(f"Unsupported quark quantize method: {quantize_method}")
+
+                # ====== 全局与 KV-cache 配置 ======
+                global_quant_config = QuantizationConfig(input_tensors=spec, weight=spec)
+                kv_cache_layer_names = ["*k_proj", "*v_proj"]
+                kv_cache_quant_config = {
+                    name: QuantizationConfig(
+                        input_tensors=global_quant_config.input_tensors,
+                        weight=global_quant_config.weight,
+                        output_tensors=spec
+                    )
+                    for name in kv_cache_layer_names
+                }
+                exclude_layers = ["lm_head"]
+
+                quant_config = Config(
+                    global_quant_config=global_quant_config,
+                    layer_quant_config=kv_cache_quant_config,
+                    kv_cache_quant_config=kv_cache_quant_config,
+                    exclude=exclude_layers
+                )
+
+                quantizer = ModelQuantizer(quant_config)
+
+                if os.path.exists(calib_file):
+                    # 加载校准结果
+                    quantizer.load_calibration(calib_file)
+                    model = quantizer.quantize_model(model, None)
+                    print(f"[load_model_and_tokenizer] Loaded cached calibration from {calib_file}")
+                else:
+                    # ====== 校准数据 ======
+                    dataset = load_dataset(
+                        "allenai/c4",
+                        data_files="en/c4-train.00001-of-01024.json.gz",
+                        split="train"
+                    ).select(range(32))
+                    text_data = list(dataset["text"])
+
+                    tokenized_outputs = tokenizer(
+                        text_data,
+                        return_tensors="pt",
+                        padding=True,
+                        truncation=True,
+                        max_length=512
+                    )
+                    tokenized_outputs = {k: v.to(device) for k, v in tokenized_outputs.items()}
+
+                    # ====== 生成 batch_size=1 的列表用于校准 ======
+                    calib_dataloader = [
+                        {k: v[i:i+1] for k, v in tokenized_outputs.items()}
+                        for i in range(tokenized_outputs["input_ids"].size(0))
+                    ]
+
+                    # ====== 迭代 batch 做校准 ======
+                    with torch.no_grad():
+                        for batch in calib_dataloader:
+                            model(**batch)
+
+                    # ====== 执行量化 ======
+                    model = quantizer.quantize_model(model, calib_dataloader)
+
+                print(f"[load_model_and_tokenizer] Quark ({quantize_method}) quantization done.")
+                print(f"[load_model_and_tokenizer] KV cache layers: {list(kv_cache_quant_config.keys())}")
+
+            except Exception as e:
+                print(f"[load_model_and_tokenizer] Quark quantization failed: {e}")
+                raise e
         else:
             raise ValueError(f"Unsupported quantization method: {quantize_method}")
     

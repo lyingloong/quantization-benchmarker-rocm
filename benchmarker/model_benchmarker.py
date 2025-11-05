@@ -134,12 +134,15 @@ class ModelBenchmarker:
             latencies.append(latency)
             token_counts.append(generated_tokens)
             gpu_mem_usage.append(mem_usage)
-            
+
+            decoded_output = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+            print(f"\n--- 模型输出 ({i+1}/{self.config.num_runs}) ---\n{decoded_output}\n")
+
             print(f"  运行 {i+1}/{self.config.num_runs}: "
                   f"延迟={latency:.4f}s, 生成{generated_tokens} tokens, "
                   f"吞吐量={generated_tokens/latency:.2f} t/s, "
                   f"显存={mem_usage:.2f}GB")
-        
+
         # 创建结果对象
         return SingleTestResult(
             config_name=config_name,

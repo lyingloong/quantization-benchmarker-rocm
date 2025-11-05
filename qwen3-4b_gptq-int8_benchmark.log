@@ -1,0 +1,200 @@
+/home/wanghao/miniconda/envs/rocm_ai/lib/python3.10/site-packages/auto_gptq/nn_modules/triton_utils/kernels.py:411: FutureWarning: `torch.cuda.amp.custom_fwd(args...)` is deprecated. Please use `torch.amp.custom_fwd(args..., device_type='cuda')` instead.
+  def forward(ctx, input, qweight, scales, qzeros, g_idx, bits, maxq):
+/home/wanghao/miniconda/envs/rocm_ai/lib/python3.10/site-packages/auto_gptq/nn_modules/triton_utils/kernels.py:419: FutureWarning: `torch.cuda.amp.custom_bwd(args...)` is deprecated. Please use `torch.amp.custom_bwd(args..., device_type='cuda')` instead.
+  def backward(ctx, grad_output):
+/home/wanghao/miniconda/envs/rocm_ai/lib/python3.10/site-packages/auto_gptq/nn_modules/triton_utils/kernels.py:461: FutureWarning: `torch.cuda.amp.custom_fwd(args...)` is deprecated. Please use `torch.amp.custom_fwd(args..., device_type='cuda')` instead.
+  @custom_fwd(cast_inputs=torch.float16)
+CUDA extension not installed.
+CUDA extension not installed.
+[load_model_and_tokenizer] Loading model and tokenizer...
+
+[33mWARN[0m  Python GIL is enabled: Multi-gpu quant acceleration for MoE models is sub-optimal and multi-core accelerated cpu packing is also disabled. We recommend Python >= 3.13.3t with Pytorch > 2.8 for mult-gpu quantization and multi-cpu packing with env `PYTHON_GIL=0`.
+[33mWARN[0m  Feature `utils/Perplexity` requires python GIL or Python >= 3.13.3T (T for Threading-Free edition of Python) plus Torch 2.8. Feature is currently skipped/disabled.
+[32mINFO[0m  ENV: Auto setting PYTORCH_CUDA_ALLOC_CONF='expandable_segments:True' for memory saving.
+[32mINFO[0m  ENV: Auto setting CUDA_DEVICE_ORDER=PCI_BUS_ID for correctness.          
+Detected gptqmodel and auto-gptq, will use gptqmodel
+[32mINFO[0m   Kernel: Auto-selection: adding candidate `TorchQuantLinear`             
+`loss_type=None` was set in the config but it is unrecognized. Using the default loss: `ForCausalLMLoss`.
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards:  50%|█████     | 1/2 [00:26<00:26, 26.58s/it]Loading checkpoint shards: 100%|██████████| 2/2 [00:29<00:00, 12.93s/it]Loading checkpoint shards: 100%|██████████| 2/2 [00:29<00:00, 14.98s/it]
+[32mINFO[0m  Format: Converting `checkpoint_format` from `gptq` to internal `gptq_v2`.
+[32mINFO[0m  Format: Converting GPTQ v1 to v2                                         
+[32mINFO[0m  Format: Conversion complete: 0.06402730941772461s                        
+[32mINFO[0m  Optimize: `TorchQuantLinear` compilation triggered.                      
+The following generation flags are not valid and may be ignored: ['top_k']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
+cuda:0
+{'': device(type='cuda')}
+[ModelBenchmarker: __init__] Device: cuda
+[ModelBenchmarker: __init__] Set num_threads to 24
+[ModelBenchmarker: __init__] Set num_interop_threads to 4
+
+=== 开始测试: Qwen3-4B ===
+
+--- 测试配置: Qwen3-4B_输入长度_3_生成_50 ---
+
+--- 模型输出 (1/5) ---
+Hello world! I'm a new user of this platform. I'm trying to learn how to use the platform to ask questions and get answers. I'm not sure how to proceed. Can you guide me through the process of asking a question and getting a helpful answer
+
+  运行 1/5: 延迟=2.2126s, 生成50 tokens, 吞吐量=22.60 t/s, 显存=4.29GB
+
+--- 模型输出 (2/5) ---
+Hello world! I'm a new user of this platform. I'm trying to learn how to use the platform to ask questions and get answers. I'm not sure how to proceed. Can you guide me through the process of asking a question and getting a helpful answer
+
+  运行 2/5: 延迟=2.2189s, 生成50 tokens, 吞吐量=22.53 t/s, 显存=4.29GB
+
+--- 模型输出 (3/5) ---
+Hello world! I'm a new user of this platform. I'm trying to learn how to use the platform to ask questions and get answers. I'm not sure how to proceed. Can you guide me through the process of asking a question and getting a helpful answer
+
+  运行 3/5: 延迟=2.2135s, 生成50 tokens, 吞吐量=22.59 t/s, 显存=4.29GB
+
+--- 模型输出 (4/5) ---
+Hello world! I'm a new user of this platform. I'm trying to learn how to use the platform to ask questions and get answers. I'm not sure how to proceed. Can you guide me through the process of asking a question and getting a helpful answer
+
+  运行 4/5: 延迟=2.2211s, 生成50 tokens, 吞吐量=22.51 t/s, 显存=4.29GB
+
+--- 模型输出 (5/5) ---
+Hello world! I'm a new user of this platform. I'm trying to learn how to use the platform to ask questions and get answers. I'm not sure how to proceed. Can you guide me through the process of asking a question and getting a helpful answer
+
+  运行 5/5: 延迟=2.2179s, 生成50 tokens, 吞吐量=22.54 t/s, 显存=4.29GB
+
+--- 测试配置: Qwen3-4B_输入长度_3_生成_100 ---
+
+--- 模型输出 (1/5) ---
+Hello world! I'm a new user of this platform. I'm trying to learn how to use the platform to ask questions and get answers. I'm not sure how to proceed. Can you guide me through the process of asking a question and getting a helpful answer?
+
+Sure! I'm glad you're here. To ask a question and get a helpful answer, you can follow these steps:
+
+1. **Click on the "Ask a Question" button**: This is usually located on the main page of the platform
+
+  运行 1/5: 延迟=4.4380s, 生成100 tokens, 吞吐量=22.53 t/s, 显存=4.30GB
+
+--- 模型输出 (2/5) ---
+Hello world! I'm a new user of this platform. I'm trying to learn how to use the platform to ask questions and get answers. I'm not sure how to proceed. Can you guide me through the process of asking a question and getting a helpful answer?
+
+Sure! I'm glad you're here. To ask a question and get a helpful answer, you can follow these steps:
+
+1. **Click on the "Ask a Question" button**: This is usually located on the main page of the platform
+
+  运行 2/5: 延迟=4.4347s, 生成100 tokens, 吞吐量=22.55 t/s, 显存=4.30GB
+
+--- 模型输出 (3/5) ---
+Hello world! I'm a new user of this platform. I'm trying to learn how to use the platform to ask questions and get answers. I'm not sure how to proceed. Can you guide me through the process of asking a question and getting a helpful answer?
+
+Sure! I'm glad you're here. To ask a question and get a helpful answer, you can follow these steps:
+
+1. **Click on the "Ask a Question" button**: This is usually located on the main page of the platform
+
+  运行 3/5: 延迟=4.4390s, 生成100 tokens, 吞吐量=22.53 t/s, 显存=4.30GB
+
+--- 模型输出 (4/5) ---
+Hello world! I'm a new user of this platform. I'm trying to learn how to use the platform to ask questions and get answers. I'm not sure how to proceed. Can you guide me through the process of asking a question and getting a helpful answer?
+
+Sure! I'm glad you're here. To ask a question and get a helpful answer, you can follow these steps:
+
+1. **Click on the "Ask a Question" button**: This is usually located on the main page of the platform
+
+  运行 4/5: 延迟=4.4457s, 生成100 tokens, 吞吐量=22.49 t/s, 显存=4.30GB
+
+--- 模型输出 (5/5) ---
+Hello world! I'm a new user of this platform. I'm trying to learn how to use the platform to ask questions and get answers. I'm not sure how to proceed. Can you guide me through the process of asking a question and getting a helpful answer?
+
+Sure! I'm glad you're here. To ask a question and get a helpful answer, you can follow these steps:
+
+1. **Click on the "Ask a Question" button**: This is usually located on the main page of the platform
+
+  运行 5/5: 延迟=4.4461s, 生成100 tokens, 吞吐量=22.49 t/s, 显存=4.30GB
+
+--- 测试配置: Qwen3-4B_输入长度_26_生成_50 ---
+
+--- 模型输出 (1/5) ---
+Please provide a detailed explanation of artificial intelligence and its applications in modern society, including examples from healthcare, finance, and transportation sectors. Additionally, explain the ethical considerations and challenges associated with AI implementation. The explanation should be in a clear and structured manner, with appropriate headings and subheadings, and should be written in a formal academic tone. The total word count should be between 
+
+  运行 1/5: 延迟=2.2244s, 生成50 tokens, 吞吐量=22.48 t/s, 显存=4.30GB
+
+--- 模型输出 (2/5) ---
+Please provide a detailed explanation of artificial intelligence and its applications in modern society, including examples from healthcare, finance, and transportation sectors. Additionally, explain the ethical considerations and challenges associated with AI implementation. The explanation should be in a clear and structured manner, with appropriate headings and subheadings, and should be written in a formal academic tone. The total word count should be between 
+
+  运行 2/5: 延迟=2.2228s, 生成50 tokens, 吞吐量=22.49 t/s, 显存=4.30GB
+
+--- 模型输出 (3/5) ---
+Please provide a detailed explanation of artificial intelligence and its applications in modern society, including examples from healthcare, finance, and transportation sectors. Additionally, explain the ethical considerations and challenges associated with AI implementation. The explanation should be in a clear and structured manner, with appropriate headings and subheadings, and should be written in a formal academic tone. The total word count should be between 
+
+  运行 3/5: 延迟=2.2232s, 生成50 tokens, 吞吐量=22.49 t/s, 显存=4.30GB
+
+--- 模型输出 (4/5) ---
+Please provide a detailed explanation of artificial intelligence and its applications in modern society, including examples from healthcare, finance, and transportation sectors. Additionally, explain the ethical considerations and challenges associated with AI implementation. The explanation should be in a clear and structured manner, with appropriate headings and subheadings, and should be written in a formal academic tone. The total word count should be between 
+
+  运行 4/5: 延迟=2.2246s, 生成50 tokens, 吞吐量=22.48 t/s, 显存=4.30GB
+
+--- 模型输出 (5/5) ---
+Please provide a detailed explanation of artificial intelligence and its applications in modern society, including examples from healthcare, finance, and transportation sectors. Additionally, explain the ethical considerations and challenges associated with AI implementation. The explanation should be in a clear and structured manner, with appropriate headings and subheadings, and should be written in a formal academic tone. The total word count should be between 
+
+  运行 5/5: 延迟=2.2256s, 生成50 tokens, 吞吐量=22.47 t/s, 显存=4.30GB
+
+--- 测试配置: Qwen3-4B_输入长度_26_生成_100 ---
+[W1104 07:23:53.301906380 collection.cpp:1116] Warning: ROCTracer produced duplicate flow start: 1 (function operator())
+
+--- 模型输出 (1/5) ---
+Please provide a detailed explanation of artificial intelligence and its applications in modern society, including examples from healthcare, finance, and transportation sectors. Additionally, explain the ethical considerations and challenges associated with AI implementation. The explanation should be in a clear and structured manner, with appropriate headings and subheadings, and should be written in a formal academic tone. The total word count should be between 1000-1500 words.
+**Artificial Intelligence: An Overview and Its Applications in Modern Society**
+
+**Introduction**
+
+Artificial Intelligence (AI) is a branch of computer science that aims to create machines capable of performing tasks that
+
+  运行 1/5: 延迟=4.4534s, 生成100 tokens, 吞吐量=22.45 t/s, 显存=4.30GB
+
+--- 模型输出 (2/5) ---
+Please provide a detailed explanation of artificial intelligence and its applications in modern society, including examples from healthcare, finance, and transportation sectors. Additionally, explain the ethical considerations and challenges associated with AI implementation. The explanation should be in a clear and structured manner, with appropriate headings and subheadings, and should be written in a formal academic tone. The total word count should be between 1000-1500 words.
+**Artificial Intelligence: An Overview and Its Applications in Modern Society**
+
+**Introduction**
+
+Artificial Intelligence (AI) is a branch of computer science that aims to create machines capable of performing tasks that
+
+  运行 2/5: 延迟=4.4493s, 生成100 tokens, 吞吐量=22.48 t/s, 显存=4.30GB
+
+--- 模型输出 (3/5) ---
+Please provide a detailed explanation of artificial intelligence and its applications in modern society, including examples from healthcare, finance, and transportation sectors. Additionally, explain the ethical considerations and challenges associated with AI implementation. The explanation should be in a clear and structured manner, with appropriate headings and subheadings, and should be written in a formal academic tone. The total word count should be between 1000-1500 words.
+**Artificial Intelligence: An Overview and Its Applications in Modern Society**
+
+**Introduction**
+
+Artificial Intelligence (AI) is a branch of computer science that aims to create machines capable of performing tasks that
+
+  运行 3/5: 延迟=4.4601s, 生成100 tokens, 吞吐量=22.42 t/s, 显存=4.30GB
+
+--- 模型输出 (4/5) ---
+Please provide a detailed explanation of artificial intelligence and its applications in modern society, including examples from healthcare, finance, and transportation sectors. Additionally, explain the ethical considerations and challenges associated with AI implementation. The explanation should be in a clear and structured manner, with appropriate headings and subheadings, and should be written in a formal academic tone. The total word count should be between 1000-1500 words.
+**Artificial Intelligence: An Overview and Its Applications in Modern Society**
+
+**Introduction**
+
+Artificial Intelligence (AI) is a branch of computer science that aims to create machines capable of performing tasks that
+
+  运行 4/5: 延迟=4.4612s, 生成100 tokens, 吞吐量=22.42 t/s, 显存=4.30GB
+
+--- 模型输出 (5/5) ---
+Please provide a detailed explanation of artificial intelligence and its applications in modern society, including examples from healthcare, finance, and transportation sectors. Additionally, explain the ethical considerations and challenges associated with AI implementation. The explanation should be in a clear and structured manner, with appropriate headings and subheadings, and should be written in a formal academic tone. The total word count should be between 1000-1500 words.
+**Artificial Intelligence: An Overview and Its Applications in Modern Society**
+
+**Introduction**
+
+Artificial Intelligence (AI) is a branch of computer science that aims to create machines capable of performing tasks that
+
+  运行 5/5: 延迟=4.4628s, 生成100 tokens, 吞吐量=22.41 t/s, 显存=4.30GB
+
+================================================================================
+性能测试汇总 (4 种配置)
+================================================================================
+配置名称                           | 平均延迟(s)      | 吞吐量(t/s)     | 峰值显存(GB)    
+--------------------------------------------------------------------------------
+Qwen3-4B_输入长度_3_生成_50... | 2.2168      | 22.55       | 4.29
+Qwen3-4B_输入长度_3_生成_100... | 4.4407      | 22.52       | 4.30
+Qwen3-4B_输入长度_26_生成_50... | 2.2241      | 22.48       | 4.30
+Qwen3-4B_输入长度_26_生成_100... | 4.4574      | 22.43       | 4.30
+================================================================================
+
+
+=== 运行性能分析 ===
+
+性能分析表格已保存至: result/Qwen3-4B_gptq-int8.txt
