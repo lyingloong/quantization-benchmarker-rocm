@@ -1,5 +1,5 @@
 from benchmark_config import BenchmarkConfig
-from model_benchmarker import ModelBenchmarker
+from model_benchmarker import ModelBenchmarker, VLLMModelBenchmarker
 from transformers import AutoModelForCausalLM,AutoTokenizer
 from tokenizers import Tokenizer
 import torch
@@ -57,6 +57,7 @@ def load_model_and_tokenizer(model_path: str, device: str, quantize: bool = Fals
                     model.quantize(calibration_dataset, batch_size=1)
                     model.save("../qwen3_gptqmodel-8bit")
                     model.model.to("cuda")
+                    print("[load_model_and_tokenizer] Model quantized to int8, in case of exceptions, please restart the script with para 'already_quantized'.")
                 except ImportError:
                     print("[load_model_and_tokenizer] gptq not installed, skipping quantization.")      
             else:
@@ -82,6 +83,7 @@ def load_model_and_tokenizer(model_path: str, device: str, quantize: bool = Fals
                     model.quantize(calibration_dataset, batch_size=1)
                     model.save("../qwen3_gptqmodel-4bit")
                     model.model.to("cuda")
+                    print("[load_model_and_tokenizer] Model quantized to int4, in case of exceptions, please restart the script with para 'already_quantized'.")
                 except ImportError:
                     print("[load_model_and_tokenizer] gptq not installed, skipping quantization.")      
             else:
@@ -216,6 +218,11 @@ def main():
     # parser.add_argument("--max_new_tokens_list", type=str, default="50,100", help="comma-separated list of max_new_tokens")
     parser.add_argument("--num_threads", type=int, default=24, help="number of CPU threads")
     parser.add_argument("--num_interop_threads", type=int, default=4, help="number of interop threads")
+
+    # vllm
+    # parser.add_argument("--use_vllm", action="store_true", help="whether to use vLLM for inference")
+    # parser.add_argument("--kv_cache_dtype", type=str, default="fp8", help="KV cache dtype for vLLM (e.g., fp8, float16)")
+
     args = parser.parse_args()
 
     config = BenchmarkConfig(
@@ -227,6 +234,19 @@ def main():
         num_interop_threads=args.num_interop_threads
     )
     device = torch.device(config.device if torch.cuda.is_available() else "cpu")
+    
+    # if args.use_vllm:
+    #     tokenizer = AutoTokenizer.from_pretrained(args.model_path, use_fast=True)
+    #     if tokenizer.pad_token is None:
+    #         tokenizer.pad_token = tokenizer.eos_token
+    #     benchmarker = VLLMModelBenchmarker(
+    #         model_path=args.model_path,
+    #         tokenizer=tokenizer,
+    #         config=config,
+    #         quantization=args.quantize_method if args.quantize_method.startswith(("quark", "gptq")) else None,
+    #         kv_cache_dtype=args.kv_cache_dtype
+    #     )
+    #     profiler_output_file = f"result/{args.model_name}_vllm_{args.quantize_method}.txt" if args.quantize else f"result/{args.model_name}_origin.txt"
     
     model, tokenizer = load_model_and_tokenizer(
         model_path=args.model_path,
@@ -241,17 +261,17 @@ def main():
         tokenizer=tokenizer,
         config=config
     )
+    profiler_output_file = f"result/{args.model_name}_{args.quantize_method}.txt" if args.quantize else f"result/{args.model_name}_origin.txt"
+
     results = benchmarker.run_all_tests(model_name=args.model_name)
 
     results.print_summary()
-    # 可选择打印详细结果
     # results.print_detailed()
-    
-    # 运行性能分析
+
     benchmarker.run_profiler(
         input_text="Hello world!", 
         max_new_tokens=100,
-        output_file=f"result/{args.model_name}_{args.quantize_method}.txt" if args.quantize else f"result/{args.model_name}_origin.txt"
+        output_file=profiler_output_file
     )
 
 

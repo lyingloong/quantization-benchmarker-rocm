@@ -4,12 +4,12 @@ DEVICE="cuda"
 
 # export TORCH_PROFILER_DISABLE_FLOWS=1
     
-# python benchmarker/run.py \
-#     --model_name "$MODEL_NAME" \
-#     --model_path "$MODEL_PATH" \
-#     --device "$DEVICE" \
-#     --quantize \
-#     --quantize_method "quark-fp8" > qwen3-4b_quark-fp8_benchmark.log 2>&1
+python benchmarker/run.py \
+    --model_name "$MODEL_NAME" \
+    --model_path "$MODEL_PATH" \
+    --device "$DEVICE" \
+    --quantize \
+    --quantize_method "quark-fp8" > qwen3-4b_quark-fp8_benchmark.log 2>&1
 
 python benchmarker/run.py \
     --model_name "$MODEL_NAME" \
