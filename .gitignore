@@ -7,3 +7,4 @@ composable_kernel/
 result/
 
 operator/
+test_model.py
