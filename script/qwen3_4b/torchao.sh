@@ -4,7 +4,7 @@ DEVICE="cuda"
 
 # export TORCH_PROFILER_DISABLE_FLOWS=1
 
-python benchmarker/run.py \
+python run.py \
    --model_name "$MODEL_NAME" \
    --model_path "$MODEL_PATH" \
    --device "$DEVICE" \

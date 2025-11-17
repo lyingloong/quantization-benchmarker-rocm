@@ -24,17 +24,25 @@ class BenchmarkConfig:
     do_sample: bool = False             # 是否采样生成
     temperature: float = 1.0            # 采样温度
     top_p: float = 1.0                  # top_p参数
+
+    debug: bool = False
     
     def __post_init__(self):
         # 设置默认值
         if self.max_new_tokens_list is None:
-            self.max_new_tokens_list = [50, 100]
+            if self.debug:
+                self.max_new_tokens_list = [1]
+            else:
+                self.max_new_tokens_list = [1, 50, 100]
         
         if self.input_texts is None:
-            self.input_texts = [
-                "Hello world!",  # 短输入
-                "Please provide a detailed explanation of artificial intelligence "
-                "and its applications in modern society, including examples from "
-                "healthcare, finance, and transportation sectors."  # 长输入
-            ]
+            if self.debug:
+                self.input_texts = ["Hello"]
+            else:
+                self.input_texts = [
+                    "Hello world!",  # 短输入
+                    "Please provide a detailed explanation of artificial intelligence "
+                    "and its applications in modern society, including examples from "
+                    "healthcare, finance, and transportation sectors."  # 长输入
+                ]
     

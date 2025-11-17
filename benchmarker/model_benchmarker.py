@@ -1,14 +1,9 @@
 import time
 import torch
 from typing import Callable, Any, Optional, List
-from benchmark_config import BenchmarkConfig
-from benchmark_result import BenchmarkResultCollection, SingleTestResult
+from .benchmark_config import BenchmarkConfig
+from .benchmark_result import BenchmarkResultCollection, SingleTestResult
 import os
-
-# try:
-#     from vllm import LLM, SamplingParams
-# except ImportError:
-#     print("警告: 未安装 vllm，vLLM 测试功能将不可用")
 
 class ModelBenchmarker:
     """通用模型性能测试器"""
@@ -17,6 +12,7 @@ class ModelBenchmarker:
                  model: Any, 
                  tokenizer: Any, 
                  config: BenchmarkConfig,
+                 debug: bool = False,
                  generate_func: Optional[Callable] = None):
         """
         初始化性能测试器
@@ -30,6 +26,7 @@ class ModelBenchmarker:
         self.model = model
         self.tokenizer = tokenizer
         self.config = config
+        self.debug = debug
         self.generate_func = generate_func or self._default_generate_func
         
         # 配置设备
@@ -182,7 +179,7 @@ class ModelBenchmarker:
         
         return self.results
     
-    def run_profiler(self, input_text: str, max_new_tokens: int, output_file: str = "output_file.txt"):
+    def run_profiler(self, input_text: str, max_new_tokens: int, output_file: str = "output_file.txt", trace_file: str = "trace_profiler.json"):
         """运行性能分析器"""
         try:
             from torch.profiler import profile, record_function, ProfilerActivity
@@ -214,173 +211,13 @@ class ModelBenchmarker:
         
         # 生成表格字符串
         table = prof.key_averages().table(sort_by="cuda_time_total", row_limit=50)
-        
         # print(table)
         
-        # 保存为文本文件（.txt 或 .log）
         with open(output_file, "w") as f:
             f.write(table)
         
         print(f"\n性能分析表格已保存至: {output_file}")
-    
 
-# class VLLMModelBenchmarker(ModelBenchmarker):
-#     """vLLM 性能测试器"""
-    
-#     def __init__(self, 
-#                  model_path: str,  # vLLM 模型路径（而非加载好的模型）
-#                  tokenizer: Any, 
-#                  config: BenchmarkConfig,
-#                  quantization: Optional[str] = None,  # 量化方式（如 quark）
-#                  kv_cache_dtype: Optional[str] = None):  # KV缓存数据类型
-#         """
-#         初始化 vLLM 测试器
-        
-#         Args:
-#             model_path: 模型本地路径或 Hugging Face Hub 名称
-#             tokenizer: 对应的 tokenizer（复用原有 tokenizer）
-#             config: 测试配置
-#             quantization: 量化方式（如 'quark'）
-#             kv_cache_dtype: KV 缓存数据类型（如 'fp8'）
-#         """
-#         super().__init__(model=None, tokenizer=tokenizer, config=config)
-        
-#         # 初始化 vLLM 模型
-#         self.llm = LLM(
-#             model=model_path,
-#             tensor_parallel_size=1,  # 单卡部署
-#             quantization=quantization,
-#             kv_cache_dtype=kv_cache_dtype
-#         )
-        
-#         # vLLM 采样参数（对应原生模型的 generate 参数）
-#         self.sampling_params = SamplingParams(
-#             temperature=config.temperature,
-#             top_p=config.top_p,
-#             do_sample=config.do_sample
-#         )
-        
-#         # 覆盖父类的 model 和 generate_func
-#         self.model = self.llm
-#         self.generate_func = self._vllm_generate_func
-        
-#         # 开启 vLLM 性能分析
-#         self.profiler_dir = "./vllm_profile"
-#         os.makedirs(self.profiler_dir, exist_ok=True)
-#         os.environ["VLLM_TORCH_PROFILER_DIR"] = self.profiler_dir
-#         print(f"[VLLMModelBenchmarker: __init__] vLLM 性能分析日志将保存至: {self.profiler_dir}")
-    
-#     def _vllm_generate_func(self, llm, prompts: List[str],** kwargs):
-#         max_new_tokens = kwargs.get("max_new_tokens", 100)
-#         # 覆盖采样参数中的生成长度
-#         sampling_params = self.sampling_params.copy()
-#         sampling_params.max_tokens = max_new_tokens
-#         return llm.generate(prompts=prompts, sampling_params=sampling_params)
-    
-#     def _prepare_inputs(self, input_text: str) -> List[str]:
-#         return [input_text]  # vLLM 接受列表形式的 prompts
-    
-#     @torch.inference_mode()
-#     def run_single_test(self, 
-#                        input_text: str, 
-#                        max_new_tokens: int, 
-#                        config_name: str) -> SingleTestResult:
-#         prompts = self._prepare_inputs(input_text)
-#         input_length = len(self.tokenizer(input_text)["input_ids"])  # 计算输入 token 长度
-        
-#         # 预热
-#         self.run_warmup(input_text, max_new_tokens)
-        
-#         # 存储每次运行的指标
-#         latencies = []
-#         token_counts = []
-#         gpu_mem_usage = []
-        
-#         # 多次运行
-#         for i in range(self.config.num_runs):
-#             # 记录 GPU 内存（vLLM 同样使用 CUDA 内存）
-#             if self.device.type == "cuda":
-#                 torch.cuda.synchronize()
-#                 torch.cuda.reset_peak_memory_stats()
-
-#             # 记录时间
-#             start_time = time.perf_counter()
-            
-#             # 启动 vLLM 性能分析
-#             self.llm.start_profile()
-            
-#             # 推理（vLLM 的 generate 返回 RequestOutput 列表）
-#             outputs = self.generate_func(
-#                 self.llm,
-#                 prompts=prompts,
-#                 max_new_tokens=max_new_tokens
-#             )
-            
-#             # 停止性能分析
-#             self.llm.stop_profile()
-            
-#             if self.device.type == "cuda":
-#                 torch.cuda.synchronize()
-
-#             # 计算时间
-#             end_time = time.perf_counter()
-#             latency = end_time - start_time
-            
-#             # 计算内存使用（复用父类的 CUDA 内存统计）
-#             mem_usage = 0.0
-#             if self.device.type == "cuda":
-#                 torch.cuda.synchronize()
-#                 peak_mem = torch.cuda.max_memory_allocated()
-#                 mem_usage = peak_mem / (1024 **3)  # GB
-
-#             # 解析 vLLM 输出（获取生成的 token 数量）
-#             generated_tokens = len(outputs[0].outputs[0].token_ids)  # vLLM 直接返回生成的 token 列表
-            
-#             # 保存结果
-#             latencies.append(latency)
-#             token_counts.append(generated_tokens)
-#             gpu_mem_usage.append(mem_usage)
-
-#             # 解码输出
-#             decoded_output = outputs[0].outputs[0].text
-#             print(f"\n--- 模型输出 ({i+1}/{self.config.num_runs}) ---\n{decoded_output}\n")
-
-#             print(f"  运行 {i+1}/{self.config.num_runs}: "
-#                   f"延迟={latency:.4f}s, 生成{generated_tokens} tokens, "
-#                   f"吞吐量={generated_tokens/latency:.2f} t/s, "
-#                   f"显存={mem_usage:.2f}GB")
-
-#         return SingleTestResult(
-#             config_name=config_name,
-#             input_length=input_length,
-#             max_new_tokens=max_new_tokens,
-#             latencies=latencies,
-#             token_counts=token_counts,
-#             gpu_mem_usage=gpu_mem_usage
-#         )
-    
-#     def run_profiler(self, input_text: str, max_new_tokens: int, output_file: str = "vllm_profiler_output.txt"):
-#         prompts = self._prepare_inputs(input_text)
-        
-#         self.run_warmup(input_text, max_new_tokens)
-        
-#         print("\n=== 运行 vLLM 性能分析 ===")
-#         # vLLM 自带 profiler 已通过环境变量开启，直接运行推理即可
-#         self.llm.start_profile()
-#         self.generate_func(
-#             self.llm,
-#             prompts=prompts,
-#             max_new_tokens=max_new_tokens
-#         )
-#         self.llm.stop_profile()
-        
-#         # 等待 profiler 写入日志
-#         time.sleep(10)
-        
-#         # 补充：将 vLLM 的 profiler 日志路径写入输出文件
-#         with open(output_file, "w") as f:
-#             f.write(f"vLLM 性能分析日志已保存至: {self.profiler_dir}\n")
-#             f.write("可通过 torch.profiler.load_profile 加载分析，或使用 tensorboard 可视化：\n")
-#             f.write(f"tensorboard --logdir={self.profiler_dir}\n")
-        
-#         print(f"\nvLLM 性能分析信息已保存至: {output_file}")
+        if(self.debug):
+            prof.export_chrome_trace(trace_file)
+            print(f"\nTrace 已保存至: {trace_file}")

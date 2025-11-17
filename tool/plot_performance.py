@@ -14,7 +14,7 @@ sns.set_theme(style="whitegrid")
 palette = 'husl'
 
 # ------------------- Data Preparation -------------------
-df = pd.read_csv('./result/exp_result.txt', sep="\s+")  # Use \s+ to handle multiple spaces
+df = pd.read_csv('./result/20251110_011110/exp_result.txt', sep="\s+")  # Use \s+ to handle multiple spaces
 
 print("Data Preview:")
 print(df.head())

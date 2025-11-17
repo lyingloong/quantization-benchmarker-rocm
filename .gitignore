@@ -1,4 +1,9 @@
-.ipynb_checkpoints
+*.ipynb_checkpoints
+/*.log
 __pycache__
 bitsandbytes/
 quark_logs/
+composable_kernel/
+result/
+
+operator/

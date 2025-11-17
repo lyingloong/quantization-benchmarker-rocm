@@ -1,18 +1,13 @@
-from benchmark_config import BenchmarkConfig
-from model_benchmarker import ModelBenchmarker, VLLMModelBenchmarker
+from benchmarker.benchmark_config import BenchmarkConfig
+from benchmarker.model_benchmarker import ModelBenchmarker
 from transformers import AutoModelForCausalLM,AutoTokenizer
 from tokenizers import Tokenizer
 import torch
 import argparse
 import os
 
-# 关闭 triton/exllama 内核（ROCm 下无效反而拖慢）
-os.environ["DISABLE_TRITON"] = "1"
-os.environ["DISABLE_EXLLAMA"] = "1"
+from module.fast_quantize import replace_linear
 
-# 降低 CPU 内核调度干扰
-os.environ["NUMEXPR_NUM_THREADS"] = "4"
-os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 def load_model_and_tokenizer(model_path: str, device: str, quantize: bool = False, quantize_method: str = "torchao-int8", already_quantized : bool = False):
     print("[load_model_and_tokenizer] Loading model and tokenizer...")
@@ -25,9 +20,11 @@ def load_model_and_tokenizer(model_path: str, device: str, quantize: bool = Fals
         dtype=torch.float16,
         trust_remote_code=True
     )
-    if not (quantize and quantize_method == "bitsandbytes"):
-        # use no-cudagraphs to avoid cudagraphs related errors, especially for amd-quark
-        model = torch.compile(model, mode="max-autotune-no-cudagraphs")
+    # if not (quantize and quantize_method == "bitsandbytes"):
+    #     # fast quantize should be compiled after quantization
+    #     if not(quantize_method.startswith("fast")):
+    #         # use no-cudagraphs to avoid cudagraphs related errors, especially for amd-quark
+    #         model = torch.compile(model, mode="max-autotune-no-cudagraphs")
     for name, param in model.named_parameters():
         assert param.device.type == "cuda", f"{name} still on CPU"
     if quantize:
@@ -197,6 +194,25 @@ def load_model_and_tokenizer(model_path: str, device: str, quantize: bool = Fals
             except Exception as e:
                 print(f"[load_model_and_tokenizer] Quark quantization failed: {e}")
                 raise e
+        elif quantize_method.startswith("fast-"):
+            # fast-int8 / fast-int4
+            print(f"[load_model_and_tokenizer] Applying {quantize_method} quantization using fast_quantize...")
+            if quantize_method == "fast-int8-groupwise":
+                mode = "int8_groupwise"
+            elif quantize_method == "fast-int8-perchannel":
+                mode = "int8_per_channel"
+            elif quantize_method == "fast-int4-groupwise":
+                mode = "int4_groupwise"
+            elif quantize_method == "fast-int4-perchannel":
+                mode = "int4_per_channel"
+            else:
+                raise ValueError(f"Unsupported fast quantize method: {quantize_method}")
+            replace_linear(model, mode=mode, group_size=128, exclude=["lm_head"])
+            
+            # # compile after quantization(optional)
+            # model = torch.compile(model, mode="max-autotune-no-cudagraphs")
+            
+            print(f"[load_model_and_tokenizer] Model quantized to {quantize_method} with fast_quantize.")
         else:
             raise ValueError(f"Unsupported quantization method: {quantize_method}")
     
@@ -215,39 +231,39 @@ def main():
     parser.add_argument("--quantize_method", type=str, default="torchao-int8", help="quantization method")
     parser.add_argument("--num_runs", type=int, default=5, help="number of benchmark runs")
     parser.add_argument("--warmup_runs", type=int, default=2, help="number of warmup runs")
-    # parser.add_argument("--max_new_tokens_list", type=str, default="50,100", help="comma-separated list of max_new_tokens")
+    parser.add_argument(
+        "--max_new_tokens_list", 
+        type=str, 
+        default="3,50,100",
+        help="comma-separated list of max_new_tokens (e.g., '3,50,100')"
+    )
     parser.add_argument("--num_threads", type=int, default=24, help="number of CPU threads")
     parser.add_argument("--num_interop_threads", type=int, default=4, help="number of interop threads")
 
-    # vllm
-    # parser.add_argument("--use_vllm", action="store_true", help="whether to use vLLM for inference")
-    # parser.add_argument("--kv_cache_dtype", type=str, default="fp8", help="KV cache dtype for vLLM (e.g., fp8, float16)")
+    parser.add_argument("--debug", action="store_true", help="enable debug mode")
 
     args = parser.parse_args()
+
+    # 解析max_new_tokens_list
+    try:
+        max_new_tokens_list = [int(token) for token in args.max_new_tokens_list.split(",")]
+        for num in max_new_tokens_list:
+            if num <= 0:
+                raise ValueError("max_new_tokens must be positive integers")
+    except ValueError as e:
+        parser.error(f"Invalid max_new_tokens_list: {e}. Please provide comma-separated positive integers.")
 
     config = BenchmarkConfig(
         num_runs=args.num_runs,
         warmup_runs=args.warmup_runs,
-        max_new_tokens_list=[50, 100],
+        max_new_tokens_list=max_new_tokens_list,
         device=args.device,
         num_threads=args.num_threads,
-        num_interop_threads=args.num_interop_threads
+        num_interop_threads=args.num_interop_threads,
+        debug=args.debug
     )
     device = torch.device(config.device if torch.cuda.is_available() else "cpu")
-    
-    # if args.use_vllm:
-    #     tokenizer = AutoTokenizer.from_pretrained(args.model_path, use_fast=True)
-    #     if tokenizer.pad_token is None:
-    #         tokenizer.pad_token = tokenizer.eos_token
-    #     benchmarker = VLLMModelBenchmarker(
-    #         model_path=args.model_path,
-    #         tokenizer=tokenizer,
-    #         config=config,
-    #         quantization=args.quantize_method if args.quantize_method.startswith(("quark", "gptq")) else None,
-    #         kv_cache_dtype=args.kv_cache_dtype
-    #     )
-    #     profiler_output_file = f"result/{args.model_name}_vllm_{args.quantize_method}.txt" if args.quantize else f"result/{args.model_name}_origin.txt"
-    
+
     model, tokenizer = load_model_and_tokenizer(
         model_path=args.model_path,
         device=device,
@@ -259,9 +275,21 @@ def main():
     benchmarker = ModelBenchmarker(
         model=model,
         tokenizer=tokenizer,
-        config=config
+        config=config,
+        debug=args.debug
     )
-    profiler_output_file = f"result/{args.model_name}_{args.quantize_method}.txt" if args.quantize else f"result/{args.model_name}_origin.txt"
+
+    import os
+    from datetime import datetime
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    result_subdir = f"result/{timestamp}"
+    os.makedirs(result_subdir, exist_ok=True)
+    if args.quantize:
+        profiler_output_file = f"{result_subdir}/{args.model_name}_{args.quantize_method}.txt"
+        trace_file = f"{result_subdir}/{args.model_name}_{args.quantize_method}_trace.json"
+    else:
+        profiler_output_file = f"{result_subdir}/{args.model_name}_origin.txt"
+        trace_file = f"{result_subdir}/{args.model_name}_trace.json"
 
     results = benchmarker.run_all_tests(model_name=args.model_name)
 
@@ -271,7 +299,8 @@ def main():
     benchmarker.run_profiler(
         input_text="Hello world!", 
         max_new_tokens=100,
-        output_file=profiler_output_file
+        output_file=profiler_output_file,
+        trace_file=trace_file
     )
 
 
